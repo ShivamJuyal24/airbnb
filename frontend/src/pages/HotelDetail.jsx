@@ -17,9 +17,7 @@ export default function HotelDetail() {
   useEffect(() => {
     api.get(`/listings/${id}`)
       .then(({ data }) => setHotel(data))
-      .catch((err) => {
-  console.error(err);
-})
+      .catch(() => navigate('/'))
       .finally(() => setLoading(false))
   }, [id])
 
@@ -30,15 +28,21 @@ export default function HotelDetail() {
   const handleBook = async () => {
     if (!user) return navigate('/login')
     if (nights <= 0) return setMessage({ text: 'Please select valid dates', type: 'error' })
+    if (booking.guests < 1 || booking.guests > hotel.maxGuests)
+      return setMessage({ text: `Guests must be between 1 and ${hotel.maxGuests}`, type: 'error' })
 
     setBookingLoading(true)
     setMessage({ text: '', type: '' })
     try {
-      await api.post('/bookings', { listingId: id, ...booking })
-      setMessage({ text: '🎉 Booking confirmed! Check My Bookings.', type: 'success' })
+      const { data } = await api.post('/payment/create-checkout-session', {
+        listingId: id,
+        checkIn: booking.checkIn,
+        checkOut: booking.checkOut,
+        guests: booking.guests,
+      })
+      window.location.href = data.url // go to Stripe checkout
     } catch (err) {
-      setMessage({ text: err.response?.data?.message || 'Booking failed', type: 'error' })
-    } finally {
+      setMessage({ text: err.response?.data?.message || 'Something went wrong', type: 'error' })
       setBookingLoading(false)
     }
   }
@@ -48,31 +52,25 @@ export default function HotelDetail() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
-      {/* Photo */}
       <div className="h-80 rounded-2xl overflow-hidden mb-6">
         <img src={hotel.photos[0]} alt={hotel.title} className="w-full h-full object-cover" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left — hotel info */}
         <div className="lg:col-span-2">
           <h1 className="text-2xl font-bold text-gray-800 mb-1">{hotel.title}</h1>
           <p className="text-gray-400 mb-4">📍 {hotel.city}, {hotel.country}</p>
           <p className="text-gray-600 leading-relaxed mb-6">{hotel.description}</p>
-
           <div className="flex gap-6 mb-6 text-sm text-gray-500">
+            <span>👥 Up to {hotel.maxGuests} guests</span>
             <span>💰 ₹{hotel.pricePerNight.toLocaleString()} / night</span>
           </div>
-
-      
         </div>
 
-        {/* Right — booking card */}
         <div className="bg-white rounded-2xl shadow-md p-6 h-fit">
           <p className="text-rose-500 font-bold text-xl mb-4">
             ₹{hotel.pricePerNight.toLocaleString()} <span className="text-gray-400 font-normal text-sm">/ night</span>
           </p>
-
           <div className="space-y-3 mb-4">
             <div>
               <label className="text-xs text-gray-500 block mb-1">Check-in</label>
@@ -130,7 +128,7 @@ export default function HotelDetail() {
             disabled={bookingLoading}
             className="w-full bg-rose-500 text-white py-3 rounded-lg font-medium hover:bg-rose-600 disabled:opacity-50"
           >
-            {bookingLoading ? 'Booking...' : user ? 'Book Now' : 'Login to Book'}
+            {bookingLoading ? 'Redirecting to payment...' : user ? 'Book & Pay Now' : 'Login to Book'}
           </button>
         </div>
       </div>
