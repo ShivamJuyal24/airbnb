@@ -10,7 +10,7 @@ export const createBooking = async (req, res) => {
       return res.status(404).json({ message: 'Listing not available' });
 
     const conflict = await Booking.findOne({
-      listing: listingId,           // ✅ was listingId, now listing
+      listing: listingId,           
       status: { $ne: 'cancelled' },
       $or: [{ checkIn: { $lt: new Date(checkOut) }, checkOut: { $gt: new Date(checkIn) } }],
     });
@@ -23,8 +23,8 @@ export const createBooking = async (req, res) => {
     const totalPrice = nights * listingDoc.pricePerNight;
 
     const booking = await Booking.create({
-      guest: req.user._id,          // ✅ was guestId, now guest
-      listing: listingId,           // ✅ was listingId, now listing
+      guest: req.user._id,          
+      listing: listingId,           
       checkIn,
       checkOut,
       guests,
@@ -40,8 +40,8 @@ export const createBooking = async (req, res) => {
 export const getMyBookings = async (req, res) => {
   try {
     const bookings = await Booking
-      .find({ guest: req.user._id })              // ✅ was guestId, now guest
-      .populate('listing', 'title city pricePerNight photos'); // ✅ was listingId, now listing
+      .find({ guest: req.user._id })             
+      .populate('listing', 'title city pricePerNight photos'); 
 
     res.json(bookings);
   } catch (err) {
@@ -53,7 +53,7 @@ export const cancelBooking = async (req, res) => {
   try {
     const booking = await Booking.findOne({
       _id: req.params.id,
-      guest: req.user._id,          // ✅ was guestId, now guest
+      guest: req.user._id,          
     });
     if (!booking)
       return res.status(404).json({ message: 'Booking not found' });

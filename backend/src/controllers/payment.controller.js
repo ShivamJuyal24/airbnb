@@ -3,7 +3,7 @@ import Listing from '../models/listing.model.js';
 import Booking from '../models/booking.model.js';
 
 export const createCheckoutSession = async (req, res) => {
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY); // ✅ defined here
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY); 
   try {
     const { listingId, checkIn, checkOut, guests } = req.body;
 
@@ -41,7 +41,7 @@ export const createCheckoutSession = async (req, res) => {
         guestId: req.user._id.toString(),
         checkIn,
         checkOut,
-        guests: String(guests),       // ✅ added
+        guests: String(guests),       
         totalPrice: String(totalPrice),
       },
       success_url: `${process.env.CLIENT_URL}/booking-success?session_id={CHECKOUT_SESSION_ID}`,
@@ -55,7 +55,7 @@ export const createCheckoutSession = async (req, res) => {
 };
 
 export const verifyPaymentAndBook = async (req, res) => {
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY); // ✅ defined here too
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY); 
   try {
     const { sessionId } = req.body;
 
@@ -83,7 +83,7 @@ export const verifyPaymentAndBook = async (req, res) => {
       listing: listingId,
       checkIn,
       checkOut,
-      guests: Number(guests),         // ✅ added
+      guests: Number(guests),         
       totalPrice: Number(totalPrice),
       status: 'confirmed',
       paymentStatus: 'paid',
