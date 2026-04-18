@@ -17,7 +17,9 @@ export default function HotelDetail() {
   useEffect(() => {
     api.get(`/listings/${id}`)
       .then(({ data }) => setHotel(data))
-      .catch(() => navigate('/'))
+      .catch((err) => {
+  console.error(err);
+})
       .finally(() => setLoading(false))
   }, [id])
 
@@ -59,16 +61,10 @@ export default function HotelDetail() {
           <p className="text-gray-600 leading-relaxed mb-6">{hotel.description}</p>
 
           <div className="flex gap-6 mb-6 text-sm text-gray-500">
-            <span>👥 Up to {hotel.maxGuests} guests</span>
             <span>💰 ₹{hotel.pricePerNight.toLocaleString()} / night</span>
           </div>
 
-          <h3 className="font-semibold text-gray-700 mb-3">Amenities</h3>
-          <div className="flex flex-wrap gap-2">
-            {hotel.amenities.map(a => (
-              <span key={a} className="bg-rose-50 text-rose-500 text-sm px-3 py-1 rounded-full">{a}</span>
-            ))}
-          </div>
+      
         </div>
 
         {/* Right — booking card */}
