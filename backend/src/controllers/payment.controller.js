@@ -6,7 +6,9 @@ export const createCheckoutSession = async (req, res) => {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY); 
   try {
     const { listingId, checkIn, checkOut, guests } = req.body;
-
+    const baseGuests = 2;
+    const extraGuestFee = 500; 
+    const extraGuests = Math.max(0, guests - baseGuests);
     const listing = await Listing.findById(listingId);
     if (!listing || !listing.isAvailable)
       return res.status(404).json({ message: 'Listing not available' });
@@ -14,10 +16,11 @@ export const createCheckoutSession = async (req, res) => {
     const nights = Math.ceil(
       (new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24)
     );
-    if (nights <= 0)
-      return res.status(400).json({ message: 'Invalid dates' });
+    
+    if (nights < 1)
+      return res.status(400).json({ message: 'Minimum 1 night stay is required' });
 
-    const totalPrice = nights * listing.pricePerNight;
+    const totalPrice = nights * listing.pricePerNight + (extraGuests * extraGuestFee* nights);
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],

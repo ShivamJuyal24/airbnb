@@ -3,6 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 import { useAuth } from '../context/AuthContext'
 
+const BASE_GUESTS = 2
+const EXTRA_GUEST_FEE = 500
+
 export default function HotelDetail() {
   const { id } = useParams()
   const { user } = useAuth()
@@ -25,9 +28,13 @@ export default function HotelDetail() {
     ? Math.ceil((new Date(booking.checkOut) - new Date(booking.checkIn)) / (1000 * 60 * 60 * 24))
     : 0
 
+  const extraGuests = Math.max(0, booking.guests - BASE_GUESTS)
+  const extraGuestCharge = extraGuests * EXTRA_GUEST_FEE * nights
+  const totalPrice = nights * (hotel?.pricePerNight || 0) + extraGuestCharge
+
   const handleBook = async () => {
     if (!user) return navigate('/login')
-    if (nights <= 0) return setMessage({ text: 'Please select valid dates', type: 'error' })
+    if (nights < 1) return setMessage({ text: 'Minimum 1 night stay required', type: 'error' })
     if (booking.guests < 1 || booking.guests > hotel.maxGuests)
       return setMessage({ text: `Guests must be between 1 and ${hotel.maxGuests}`, type: 'error' })
 
@@ -40,7 +47,7 @@ export default function HotelDetail() {
         checkOut: booking.checkOut,
         guests: booking.guests,
       })
-      window.location.href = data.url // go to Stripe checkout
+      window.location.href = data.url
     } catch (err) {
       setMessage({ text: err.response?.data?.message || 'Something went wrong', type: 'error' })
       setBookingLoading(false)
@@ -57,20 +64,43 @@ export default function HotelDetail() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left — hotel info */}
         <div className="lg:col-span-2">
           <h1 className="text-2xl font-bold text-gray-800 mb-1">{hotel.title}</h1>
           <p className="text-gray-400 mb-4">📍 {hotel.city}, {hotel.country}</p>
           <p className="text-gray-600 leading-relaxed mb-6">{hotel.description}</p>
-          <div className="flex gap-6 mb-6 text-sm text-gray-500">
+
+          <div className="flex flex-wrap gap-6 mb-6 text-sm text-gray-500">
             <span>👥 Up to {hotel.maxGuests} guests</span>
             <span>💰 ₹{hotel.pricePerNight.toLocaleString()} / night</span>
+            {hotel.bedrooms  && <span>🛏 {hotel.bedrooms} bedroom(s)</span>}
+            {hotel.bathrooms && <span>🚿 {hotel.bathrooms} bathroom(s)</span>}
           </div>
+
+          {/* Extra guest notice */}
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-6 text-sm text-amber-700">
+            💡 Base price covers up to {BASE_GUESTS} guests. Extra guests are charged ₹{EXTRA_GUEST_FEE}/night each.
+          </div>
+
+          {hotel.amenities?.length > 0 && (
+            <>
+              <h3 className="font-semibold text-gray-700 mb-3">Amenities</h3>
+              <div className="flex flex-wrap gap-2">
+                {hotel.amenities.map(a => (
+                  <span key={a} className="bg-rose-50 text-rose-500 text-sm px-3 py-1 rounded-full">{a}</span>
+                ))}
+              </div>
+            </>
+          )}
         </div>
 
+        {/* Right — booking card */}
         <div className="bg-white rounded-2xl shadow-md p-6 h-fit">
           <p className="text-rose-500 font-bold text-xl mb-4">
-            ₹{hotel.pricePerNight.toLocaleString()} <span className="text-gray-400 font-normal text-sm">/ night</span>
+            ₹{hotel.pricePerNight.toLocaleString()}
+            <span className="text-gray-400 font-normal text-sm"> / night</span>
           </p>
+
           <div className="space-y-3 mb-4">
             <div>
               <label className="text-xs text-gray-500 block mb-1">Check-in</label>
@@ -93,7 +123,9 @@ export default function HotelDetail() {
               />
             </div>
             <div>
-              <label className="text-xs text-gray-500 block mb-1">Guests</label>
+              <label className="text-xs text-gray-500 block mb-1">
+                Guests <span className="text-gray-400">(max {hotel.maxGuests})</span>
+              </label>
               <input
                 type="number"
                 min={1}
@@ -105,14 +137,22 @@ export default function HotelDetail() {
             </div>
           </div>
 
+          {/* Price breakdown */}
           {nights > 0 && (
-            <div className="bg-gray-50 rounded-lg p-3 mb-4 text-sm">
-              <div className="flex justify-between text-gray-500 mb-1">
-                <span>₹{hotel.pricePerNight.toLocaleString()} × {nights} nights</span>
-              </div>
-              <div className="flex justify-between font-bold text-gray-800">
-                <span>Total</span>
+            <div className="bg-gray-50 rounded-lg p-3 mb-4 text-sm space-y-1">
+              <div className="flex justify-between text-gray-500">
+                <span>₹{hotel.pricePerNight.toLocaleString()} × {nights} night{nights > 1 ? 's' : ''}</span>
                 <span>₹{(hotel.pricePerNight * nights).toLocaleString()}</span>
+              </div>
+              {extraGuests > 0 && (
+                <div className="flex justify-between text-gray-500">
+                  <span>Extra guests ({extraGuests} × {nights} night{nights > 1 ? 's' : ''})</span>
+                  <span>₹{extraGuestCharge.toLocaleString()}</span>
+                </div>
+              )}
+              <div className="border-t border-gray-200 pt-2 flex justify-between font-bold text-gray-800">
+                <span>Total</span>
+                <span>₹{totalPrice.toLocaleString()}</span>
               </div>
             </div>
           )}
